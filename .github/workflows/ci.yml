@@ -45,7 +45,7 @@ jobs:
           # humans/editors.
           SHELLCHECK_OPTS: -e SC1091
         with:
-          scandir: "./scripts"
+          scandir: "."
 
   bats:
     name: bats (scripts unit/integration tests)

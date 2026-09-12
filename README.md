@@ -59,23 +59,33 @@ None of this is hardcoded — different disk counts/sizes work too, see
 
 ## Quickstart
 
+The fastest way to get a Tandem NAS running — clones the repo and launches
+the guided setup wizard in one command:
+
 ```bash
-git clone https://github.com/OWNER/tandem-nas.git
-cd tandem-nas
+curl -fsSL https://raw.githubusercontent.com/OWNER/tandem-nas/main/install.sh | bash
 ```
 
-**Guided setup:** `scripts/setup.sh` walks through everything below
+The wizard (`scripts/setup.sh`) walks through everything below
 interactively — picking disks, generating passwords, running Ansible,
 detecting whether you need direct exposure or Cloudflare Tunnel, and
 starting the stack — confirming before anything destructive. It's safe to
-re-run if a step fails partway through.
+re-run if a step fails partway through. Set `TANDEM_NAS_DIR` first if you
+want the repo cloned somewhere other than `~/tandem-nas`.
+
+Already cloned the repo yourself? Run the same wizard directly:
 
 ```bash
-scripts/setup.sh
+cd tandem-nas && scripts/setup.sh
 ```
 
 The rest of this section is the same process done manually, for anyone who
 wants full control or to understand what each step actually does.
+
+```bash
+git clone https://github.com/OWNER/tandem-nas.git
+cd tandem-nas
+```
 
 ```bash
 cp .env.example .env
@@ -187,6 +197,7 @@ are worth knowing about upfront rather than debugging cold:
 
 ```
 tandem-nas/
+├── install.sh                # One-line bootstrap: clone + launch scripts/setup.sh
 ├── docker-compose.yml       # Nextcloud, Postgres, Redis, Caddy, fail2ban
 ├── docker/                  # Caddy custom build + fail2ban jail/filter config
 ├── ansible/                 # Host layer: ZFS, udev/systemd, power, firewall
