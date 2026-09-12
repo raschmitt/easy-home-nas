@@ -83,14 +83,9 @@ project's initial build used:
      implicit — "I'll leave that for later" without a linked issue means the
      PR isn't done.
 
-## Reporting bugs / requesting features
+## Reporting bugs or requesting features
 
 Use the issue templates under `.github/ISSUE_TEMPLATE/` — they ask for the
 minimum information needed to act on the report (for bugs: your hardware
 layout, `.env` values that matter with secrets redacted, and the actual
 command + output).
-
-## Code of conduct
-
-Participation in this project is governed by
-[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
