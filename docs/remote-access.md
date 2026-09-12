@@ -175,6 +175,10 @@ Point the official Nextcloud apps at `https://<TANDEM_PUBLIC_DOMAIN>`:
 No VPN, no special network config on the client side — it's a normal HTTPS
 endpoint, regardless of which path (A or B) you used to get it.
 
+See [`docs/mobile-access.md`](mobile-access.md) for the full mobile setup:
+adding the account, enabling automatic photo/video backup, revoking a lost
+device without resetting the account password, and troubleshooting.
+
 ## SSH stays separate
 
 SSH administrative access to the host is **not** part of this public-facing

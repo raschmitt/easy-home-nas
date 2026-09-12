@@ -180,7 +180,7 @@ tandem-nas/
 │       ├── desktop-power/
 │       └── hardening/
 ├── scripts/                 # backup.sh, restore.sh, provision-user.sh, ...
-└── docs/                    # Disaster recovery, adding users, remote access
+└── docs/                    # Disaster recovery, adding users, remote/mobile access
 ```
 
 ## Status / known trade-offs
