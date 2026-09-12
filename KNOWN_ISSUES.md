@@ -74,3 +74,23 @@ for now.
 **Fix later if:** someone wants to invest in a VM-based CI job (e.g. using
 KVM-in-CI) specifically for this — worth it once the project has more than
 one active maintainer to keep that pipeline healthy.
+
+## 7. Postgres isn't on the ZFS mirror and isn't in the automated backup
+
+**Status:** open, not yet fixed.
+**Why:** `docker-compose.yml` bind-mounts Postgres at
+`${TANDEM_DATA_ROOT}/postgres`, a plain directory on the host's root
+filesystem — not under the ZFS mirror (only
+`$TANDEM_ZFS_MOUNTPOINT_NEXTCLOUD` is a ZFS dataset). `scripts/backup.sh`
+only backs up that ZFS mountpoint via restic, so the database holding every
+user account, share, and file-index entry currently has neither the
+mirror's redundancy/checksums nor a place in the automated backup — only
+Nextcloud's files/appdata are actually protected. Found while taking a
+manual `pg_dump` as a safety net before a Nextcloud version upgrade, since
+that was the only backup of the database that existed at the time.
+**Fix later:** either move the Postgres bind mount onto a ZFS dataset
+(`tandem/postgres`, same pattern as `tandem/nextcloud`), or add a
+`pg_dump` step to `scripts/backup.sh` ahead of the restic run — probably
+both, since the ZFS mirror protects against disk failure and the backup
+protects against everything else (accidental deletion, upgrade gone
+wrong, ransomware).
