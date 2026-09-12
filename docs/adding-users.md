@@ -53,6 +53,21 @@ their files, transfer ownership first:
 docker compose exec -u www-data nextcloud php occ files:transfer-ownership alice bob
 ```
 
+## Default sample files (Documents, Photos, Templates)
+
+Nextcloud normally seeds every new account with a "skeleton" of sample
+files. `scripts/setup.sh` disables this right after bringing the stack up
+(`occ config:system:set skeletondirectory --value=""`), so users created
+from then on start with an empty account. If you're on an install from
+before that step existed, or skipped it, run it yourself once:
+
+```bash
+docker compose exec -u www-data nextcloud php occ config:system:set skeletondirectory --value=""
+```
+
+This only affects accounts created afterward — it doesn't remove files
+already copied into an existing user's folder.
+
 ## Why not a ZFS dataset per user?
 
 See the "Multi-tenancy" section of `ARCHITECTURE.md` for the reasoning, and

@@ -15,8 +15,9 @@ setup() {
 	DOCKER_CALLS_LOG="$(mktemp)"
 	export DOCKER_CALLS_LOG
 
-	# DOCKER_STUB_RUNNING=1      -> `compose ps --status running -q` reports a container.
-	# DOCKER_STUB_USER_LIST=... -> `occ user:list` prints this (empty = no users yet).
+	# DOCKER_STUB_RUNNING=1       -> `compose ps --status running -q` reports a container.
+	# DOCKER_STUB_USER_LIST=...  -> `occ user:list` prints this (empty = no users yet).
+	# DOCKER_STUB_SKELETON_FAIL=1 -> `occ config:system:set skeletondirectory` fails (Nextcloud not up).
 	cat >"$STUB_BIN/docker" <<'EOF'
 #!/usr/bin/env bash
 echo "docker $*" >>"$DOCKER_CALLS_LOG"
@@ -27,6 +28,10 @@ if [[ "$*" == "compose ps --status running -q"* ]]; then
 fi
 if [[ "$*" == *"occ user:list"* ]]; then
 	[ -n "${DOCKER_STUB_USER_LIST:-}" ] && printf '%s\n' "$DOCKER_STUB_USER_LIST"
+	exit 0
+fi
+if [[ "$*" == *"config:system:set skeletondirectory"* ]]; then
+	[ "${DOCKER_STUB_SKELETON_FAIL:-0}" = "1" ] && exit 1
 	exit 0
 fi
 exit 0
@@ -124,6 +129,33 @@ teardown() {
 	[[ "$output" != *"A stack já está no ar."* ]]
 	run cat "$DOCKER_CALLS_LOG"
 	[[ "$output" == *"compose up -d"* ]]
+}
+
+# --- disable_default_skeleton_files ---------------------------------------
+
+@test "disable_default_skeleton_files disables the skeleton and reports success" {
+	run bash -c "
+		source '$REPO_ROOT/scripts/setup.sh'
+		ENV_FILE=/dev/null
+		disable_default_skeleton_files
+	"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Desativados"* ]]
+	run cat "$DOCKER_CALLS_LOG"
+	[[ "$output" == *"config:system:set skeletondirectory --value="* ]]
+}
+
+@test "disable_default_skeleton_files falls back to a manual instruction when Nextcloud isn't up" {
+	export DOCKER_STUB_SKELETON_FAIL=1
+
+	run bash -c "
+		source '$REPO_ROOT/scripts/setup.sh'
+		ENV_FILE=/dev/null
+		disable_default_skeleton_files
+	"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Não consegui desativar"* ]]
+	[[ "$output" == *"docker compose exec -u www-data nextcloud php occ config:system:set skeletondirectory"* ]]
 }
 
 # --- provision_first_user -------------------------------------------------

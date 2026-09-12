@@ -359,6 +359,16 @@ start_stack() {
 	log "Acompanhe com: docker compose logs -f nextcloud"
 }
 
+disable_default_skeleton_files() {
+	header "Arquivos de exemplo padrão"
+	if ! (cd "$REPO_ROOT" && docker compose exec -T -u www-data nextcloud php occ config:system:set skeletondirectory --value="" >/dev/null 2>&1); then
+		log "Não consegui desativar (Nextcloud não está no ar?) — rode depois:"
+		log "  docker compose exec -u www-data nextcloud php occ config:system:set skeletondirectory --value=\"\""
+		return
+	fi
+	log "Desativados — novas contas não vão mais vir com Documents/Photos/Templates de exemplo."
+}
+
 provision_first_user() {
 	header "Usuários"
 	local existing_users
@@ -400,6 +410,7 @@ main() {
 	run_ansible
 	configure_access_path
 	start_stack
+	disable_default_skeleton_files
 	provision_first_user
 	final_summary
 }
