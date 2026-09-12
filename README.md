@@ -3,8 +3,6 @@
 [![CI](https://github.com/OWNER/tandem-nas/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/tandem-nas/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-*[Leia em português](README.pt-BR.md)*
-
 An open-source, self-hosted NAS stack: two disks mirrored in sync ("tandem"),
 redundant storage, automatic versioned backups, multi-user with individual
 quotas, and remote access from the official mobile apps or any browser — no
