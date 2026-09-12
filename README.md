@@ -223,6 +223,10 @@ there before assuming something was simply missed.
 See [`CONTRIBUTING.md`](CONTRIBUTING.md). Please read
 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) too.
 
+## Support
+
+If you find this project useful, consider [buying me a coffee](https://www.buymeacoffee.com/raschmitt) ☕
+
 ## License
 
 [MIT](LICENSE).
