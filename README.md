@@ -1,7 +1,4 @@
-# Easy Home NAS
-
-[![CI](https://github.com/raschmitt/easy-home-nas/actions/workflows/ci.yml/badge.svg)](https://github.com/raschmitt/easy-home-nas/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+# Easy Home NAS &nbsp; [![CI](https://github.com/raschmitt/easy-home-nas/actions/workflows/ci.yml/badge.svg)](https://github.com/raschmitt/easy-home-nas/actions/workflows/ci.yml)
 
 An open-source, self-hosted NAS stack: two disks mirrored for redundant
 storage, automatic versioned backups, multi-user with individual quotas, and
