@@ -1,9 +1,9 @@
 # Easy Home NAS &nbsp; [![CI](https://github.com/raschmitt/easy-home-nas/actions/workflows/ci.yml/badge.svg)](https://github.com/raschmitt/easy-home-nas/actions/workflows/ci.yml)
 
-An open-source, self-hosted NAS stack: two disks mirrored for redundant
-storage, automatic versioned backups, multi-user with individual quotas, and
-remote access from the official mobile apps or any browser — no VPN
-required.
+An open-source, self-hosted, plug-and-play home NAS stack: two disks mirrored
+for redundant storage, automatic versioned backups, multi-user with
+individual quotas, and remote access from the official mobile apps or any
+browser — no VPN required. Easy to set up, easy to use.
 
 Built to run on an **already-in-use Ubuntu Desktop machine**, not a clean
 dedicated appliance — it's designed to coexist with whatever else is running
@@ -29,15 +29,6 @@ on your box.
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full diagram and the
 reasoning behind each design decision.
-
-## Hardware this was built and tested against
-
-- 2× 1TB SATA HDDs → ZFS mirror (the main pool)
-- 1× 2TB external USB HDD → backup destination, connected intermittently
-- Host: Ubuntu Desktop 24.04 (GNOME), already running other workloads
-
-None of this is hardcoded — different disk counts/sizes work too, see
-`.env.example`.
 
 ## Prerequisites
 
