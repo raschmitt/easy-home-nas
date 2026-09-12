@@ -77,6 +77,13 @@ services:
     environment:
       TANDEM_PUBLIC_DOMAIN: ${TANDEM_PUBLIC_DOMAIN}
       TANDEM_ACME_EMAIL: ${TANDEM_ACME_EMAIL}
+      # Empty (default) = Caddy manages its own public HTTPS cert via
+      # Let's Encrypt, listening on 443 directly — the project default for
+      # anyone with real inbound access. Set to "http://" when fronting
+      # Caddy with Cloudflare Tunnel instead (see docs/remote-access.md):
+      # Cloudflare terminates public TLS at its edge, and this container
+      # only ever needs to be reached over the private tunnel network.
+      TANDEM_CADDY_ADDRESS_PREFIX: ${TANDEM_CADDY_ADDRESS_PREFIX:-}
     ports:
       - "80:80"
       - "443:443"
@@ -86,6 +93,21 @@ services:
       - caddy_data:/data
       - caddy_config:/config
       - ${TANDEM_DATA_ROOT}/caddy/logs:/var/log/caddy
+    networks: [internal]
+
+  # Opt-in: only needed if you're behind CG-NAT or an ISP that blocks
+  # inbound 80/443 and can't do direct exposure. See docs/remote-access.md.
+  # Start with: docker compose --profile tunnel up -d
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    profiles: ["tunnel"]
+    command: tunnel --config /etc/cloudflared/config.yml run
+    depends_on:
+      - caddy
+    volumes:
+      - ./docker/cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+      - ./docker/cloudflared/credentials.json:/etc/cloudflared/credentials.json:ro
     networks: [internal]
 
   fail2ban:

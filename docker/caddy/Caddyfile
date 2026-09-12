@@ -13,7 +13,7 @@
 	}
 }
 
-{$TANDEM_PUBLIC_DOMAIN} {
+{$TANDEM_CADDY_ADDRESS_PREFIX}{$TANDEM_PUBLIC_DOMAIN} {
 	import security_headers
 
 	# Rate-limit auth endpoints hardest: brute-force protection in depth,

@@ -1,0 +1,19 @@
+# Copy to docker/cloudflared/config.yml (git-ignored) and fill in your own
+# tunnel ID — this file is specific to one Cloudflare account's tunnel.
+#
+# Only needed if you're using Cloudflare Tunnel as your remote-access path
+# (see docs/remote-access.md — "Behind CG-NAT or an ISP that blocks inbound
+# ports"). If you have real inbound access, you don't need this at all:
+# Caddy's automatic HTTPS (direct exposure) is the project's default.
+#
+# Created with:
+#   cloudflared tunnel login
+#   cloudflared tunnel create <name>
+#   cloudflared tunnel route dns <name> <TANDEM_PUBLIC_DOMAIN>
+tunnel: REPLACE_WITH_YOUR_TUNNEL_ID
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: REPLACE_WITH_YOUR_TANDEM_PUBLIC_DOMAIN
+    service: http://caddy:80
+  - service: http_status:404

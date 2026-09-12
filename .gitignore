@@ -2,6 +2,8 @@
 .env
 ansible/inventory.ini
 docker-compose.override.yml
+docker/cloudflared/config.yml
+docker/cloudflared/credentials.json
 *.retry
 
 # Nextcloud / app runtime data (bind-mounted from the host, not repo content)

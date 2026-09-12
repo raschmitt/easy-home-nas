@@ -23,6 +23,65 @@ convenience is the reason the checklist below is mandatory, not optional.
      client depends entirely on your DNS provider — pick one and add it as
      its own role if you need it.
 
+## Behind CG-NAT or an ISP that blocks inbound ports: Cloudflare Tunnel
+
+Some residential ISPs block inbound 80/443 outright (common in Brazil, for
+example) even when you have a real public IP and correct port-forward rules
+— you'll see `zpool`-style symptoms like every inbound port timing out from
+multiple external vantage points, not just 80/443. If that's your situation,
+direct exposure per the prerequisites above won't work no matter how the
+router is configured, and Cloudflare Tunnel is the practical alternative:
+this host makes an *outbound* connection to Cloudflare's edge, which then
+terminates public HTTPS and proxies traffic back over that tunnel — no
+inbound port needs to be reachable at all.
+
+Trade-off: Cloudflare Tunnel requires your domain's DNS zone (the whole
+domain, not just the subdomain) to be managed by Cloudflare, since issuing
+a public certificate and routing the tunnel both happen at the zone level.
+If your domain's DNS is currently elsewhere (e.g. Netlify, your registrar),
+migrating the zone means recreating every existing record (MX, TXT, your
+existing site's A/AAAA/CNAME) in Cloudflare first, then switching
+nameservers at your registrar — do this deliberately, not as a rushed step,
+since it affects existing mail/site traffic too.
+
+1. **Add your domain to Cloudflare** (Free plan is enough) and let it scan
+   your existing DNS records. Verify every record matches what you already
+   have before continuing — for any record that's part of your existing
+   site/mail (not the new NAS subdomain), set it to **DNS only** (grey
+   cloud), not proxied, so Cloudflare doesn't change how that traffic
+   behaves.
+2. **Switch nameservers** at your registrar to the two Cloudflare assigns.
+   This is the actual cutover — propagation is usually fast (minutes) but
+   can take up to 48h.
+3. **Create the tunnel** from this host:
+   ```bash
+   cloudflared tunnel login          # opens a browser to authorize
+   cloudflared tunnel create tandem-nas
+   cloudflared tunnel route dns tandem-nas $TANDEM_PUBLIC_DOMAIN
+   ```
+   This writes `~/.cloudflared/<tunnel-id>.json` (the tunnel's credentials —
+   treat it like a private key).
+4. **Wire it into the stack**:
+   ```bash
+   cp docker/cloudflared/config.yml.example docker/cloudflared/config.yml
+   # edit config.yml: set `tunnel:` to your tunnel ID and `hostname:` to
+   # $TANDEM_PUBLIC_DOMAIN
+   cp ~/.cloudflared/<tunnel-id>.json docker/cloudflared/credentials.json
+   ```
+   In `.env`, set `TANDEM_CADDY_ADDRESS_PREFIX=http://` — this tells Caddy to
+   serve plain HTTP instead of also trying (and endlessly failing) to get
+   its own Let's Encrypt certificate, since Cloudflare's edge is what
+   terminates public HTTPS now.
+5. **Start the tunnel service**, which is opt-in via a Compose profile:
+   ```bash
+   docker compose --profile tunnel up -d
+   ```
+
+Verify end to end: `curl -I https://$TANDEM_PUBLIC_DOMAIN/status.php` should
+return `200`, and `openssl s_client -connect $TANDEM_PUBLIC_DOMAIN:443
+-servername $TANDEM_PUBLIC_DOMAIN` should show a valid Let's Encrypt
+certificate issued through Cloudflare.
+
 ## What's already protecting this by default
 
 | Layer | What it does |
