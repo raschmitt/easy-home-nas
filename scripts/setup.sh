@@ -316,7 +316,27 @@ setup_path_b() {
 	COMPOSE_PROFILE_ARGS=(--profile tunnel)
 }
 
+# Reconstructs COMPOSE_PROFILE_ARGS from what's already in .env, so a
+# "keep as-is" answer here still gets start_stack to pass --profile tunnel
+# when needed — same signal setup_path_b/setup_path_a themselves write.
+compose_profile_args_for_existing_config() {
+	if [ "$(get_env_var TANDEM_CADDY_ADDRESS_PREFIX)" = "http://" ]; then
+		echo "--profile tunnel"
+	fi
+}
+
 configure_access_path() {
+	local existing_domain
+	existing_domain="$(get_env_var TANDEM_PUBLIC_DOMAIN)"
+	if [ -n "$existing_domain" ]; then
+		header "Caminho de acesso público"
+		if confirm "Já configurado para '$existing_domain'. Manter como está e pular esta etapa?"; then
+			log "Mantendo configuração existente ($existing_domain)."
+			read -r -a COMPOSE_PROFILE_ARGS <<<"$(compose_profile_args_for_existing_config)"
+			return
+		fi
+	fi
+
 	detect_access_path
 	if [ "$ACCESS_PATH" = "B" ]; then
 		setup_path_b || setup_path_a
@@ -327,17 +347,37 @@ configure_access_path() {
 
 start_stack() {
 	header "Camada de aplicação (Docker Compose)"
-	confirm "Subir Nextcloud, Postgres, Redis, Caddy${COMPOSE_PROFILE_ARGS:+ e cloudflared} agora?" || {
-		log "Pulando — rode 'docker compose ${COMPOSE_PROFILE_ARGS[*]:-} up -d' quando quiser."
-		return
-	}
+	local running
+	running="$(cd "$REPO_ROOT" && docker compose ps --status running -q 2>/dev/null || true)"
+
+	if [ -n "$running" ]; then
+		log "A stack já está no ar."
+		confirm "Aplicar a configuração atual agora (docker compose up -d — recria só o que mudou)?" || {
+			log "Pulando — nada foi alterado."
+			return
+		}
+	else
+		confirm "Subir Nextcloud, Postgres, Redis, Caddy${COMPOSE_PROFILE_ARGS:+ e cloudflared} agora?" || {
+			log "Pulando — rode 'docker compose ${COMPOSE_PROFILE_ARGS[*]:-} up -d' quando quiser."
+			return
+		}
+	fi
 	(cd "$REPO_ROOT" && docker compose "${COMPOSE_PROFILE_ARGS[@]}" up -d)
 	log "Acompanhe com: docker compose logs -f nextcloud"
 }
 
 provision_first_user() {
-	header "Primeiro usuário"
-	confirm "Criar um usuário do Nextcloud agora?" || return
+	header "Usuários"
+	local existing_users
+	existing_users="$(cd "$REPO_ROOT" && docker compose exec -T -u www-data nextcloud php occ user:list 2>/dev/null || true)"
+
+	if [ -n "$existing_users" ]; then
+		log "Usuários já cadastrados:"
+		echo "$existing_users"
+		confirm "Criar mais um usuário agora?" || return
+	else
+		confirm "Criar um usuário do Nextcloud agora?" || return
+	fi
 	local uname quota
 	uname="$(ask "Nome de usuário")"
 	quota="$(ask "Cota de espaço" "20G")"
