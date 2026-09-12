@@ -99,15 +99,22 @@ and you're rebuilding on new disks.
    docker compose down
    ```
 
-3. **Restore the latest snapshot straight into the new dataset:**
+3. **Restore the latest snapshot to a staging directory, then move it into
+   place.** restic always recreates the *original absolute path* under
+   whatever `--target` you give it — it does not restore straight into an
+   arbitrary directory the way `tar --strip-components` would. So restoring
+   directly onto `$TANDEM_ZFS_MOUNTPOINT_NEXTCLOUD` would nest the files one
+   level too deep instead of replacing it. Restore to a scratch directory
+   and move the nested path up instead:
 
    ```bash
-   scripts/restore.sh --snapshot latest --target "$TANDEM_ZFS_MOUNTPOINT_NEXTCLOUD"
-   ```
+   scripts/restore.sh --snapshot latest --target /tmp/tandem-restore
 
-   The script warns and asks for confirmation because the target directory
-   already exists (it was just created by the ZFS role) — that's expected
-   here, confirm to proceed.
+   # restic recreated the original absolute path under the staging dir —
+   # move its contents up into the real mountpoint:
+   sudo rsync -a "/tmp/tandem-restore${TANDEM_ZFS_MOUNTPOINT_NEXTCLOUD}/" "$TANDEM_ZFS_MOUNTPOINT_NEXTCLOUD/"
+   rm -rf /tmp/tandem-restore
+   ```
 
 4. **Fix ownership** (Nextcloud's container runs as `www-data`, uid 33 by
    default in the `nextcloud:29-apache` image):

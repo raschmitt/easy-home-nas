@@ -1,6 +1,7 @@
 # Secrets and local configuration — never commit real values
 .env
 ansible/inventory.ini
+docker-compose.override.yml
 *.retry
 
 # Nextcloud / app runtime data (bind-mounted from the host, not repo content)
