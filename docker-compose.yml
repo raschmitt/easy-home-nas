@@ -39,7 +39,7 @@ services:
       retries: 5
 
   nextcloud:
-    image: nextcloud:33-apache
+    image: nextcloud:34-apache
     restart: unless-stopped
     depends_on:
       postgres:
