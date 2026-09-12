@@ -1,4 +1,4 @@
-# Contributing to Tandem NAS
+# Contributing to Easy Home NAS
 
 Thanks for considering it. This document is meant to be actionable — if a
 step here is vague, that's a bug in this file, please open an issue about it.

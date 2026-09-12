@@ -1,4 +1,4 @@
-# Tandem NAS — Cloudflare Tunnel infrastructure.
+# Easy Home NAS — Cloudflare Tunnel infrastructure.
 #
 # This is intentionally scoped to ONLY the resources this project introduces
 # (the tunnel + its DNS record). It does not import or manage your zone's

@@ -25,8 +25,8 @@ setup() {
 	TARGET_DIR="$(mktemp -d)"
 	rmdir "$TARGET_DIR" # install.sh must create it itself via git clone
 
-	export TANDEM_NAS_REPO_URL="$FAKE_REPO"
-	export TANDEM_NAS_DIR="$TARGET_DIR"
+	export EASY_HOME_NAS_REPO_URL="$FAKE_REPO"
+	export EASY_HOME_NAS_DIR="$TARGET_DIR"
 }
 
 teardown() {

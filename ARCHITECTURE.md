@@ -1,6 +1,6 @@
 # Architecture
 
-Tandem NAS is split into two layers, deployed by two different tools:
+Easy Home NAS is split into two layers, deployed by two different tools:
 
 - **Host layer** (Ansible, `ansible/`): disks, ZFS pool, udev rules, systemd
   units, GNOME power settings, firewall. Anything that needs root and talks

@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# One-line bootstrap: clones Tandem NAS and launches the guided setup
+# One-line bootstrap: clones Easy Home NAS and launches the guided setup
 # wizard (scripts/setup.sh).
 #
-#   curl -fsSL https://raw.githubusercontent.com/OWNER/tandem-nas/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/raschmitt/easy-home-nas/main/install.sh | bash
 #
 # Safe to re-run: if the repo is already cloned in the target directory,
 # this just pulls the latest and re-launches the wizard, which is itself
 # safe to re-run (see scripts/setup.sh).
 set -euo pipefail
 
-REPO_URL="${TANDEM_NAS_REPO_URL:-https://github.com/OWNER/tandem-nas.git}"
-TARGET_DIR="${TANDEM_NAS_DIR:-$HOME/tandem-nas}"
+REPO_URL="${EASY_HOME_NAS_REPO_URL:-https://github.com/raschmitt/easy-home-nas.git}"
+TARGET_DIR="${EASY_HOME_NAS_DIR:-$HOME/easy-home-nas}"
 
 if ! command -v git >/dev/null 2>&1; then
 	echo "git não encontrado. Instale com: sudo apt install git" >&2
@@ -18,10 +18,10 @@ if ! command -v git >/dev/null 2>&1; then
 fi
 
 if [ -d "$TARGET_DIR/.git" ]; then
-	echo "Tandem NAS já clonado em $TARGET_DIR — atualizando..."
+	echo "Easy Home NAS já clonado em $TARGET_DIR — atualizando..."
 	git -C "$TARGET_DIR" pull --ff-only
 else
-	echo "Clonando Tandem NAS em $TARGET_DIR..."
+	echo "Clonando Easy Home NAS em $TARGET_DIR..."
 	git clone "$REPO_URL" "$TARGET_DIR"
 fi
 

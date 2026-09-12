@@ -40,6 +40,6 @@ and use `occ files_external`. Either way, every new user means:
 | Works for non-Nextcloud access (Samba/NFS) | No | Yes |
 | Automation complexity | Low (`scripts/provision-user.sh`) | Higher (compose file edits per user) |
 
-Use this pattern if you're extending Tandem NAS to serve files outside of
+Use this pattern if you're extending Easy Home NAS to serve files outside of
 Nextcloud (e.g. adding Samba later) and need one enforcement point that
 covers both.

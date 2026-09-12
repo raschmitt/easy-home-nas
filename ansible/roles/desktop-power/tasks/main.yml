@@ -27,7 +27,7 @@
     dest: /etc/systemd/logind.conf.d/99-tandem-nas.conf
     mode: "0644"
     content: |
-      # Managed by Tandem NAS (ansible/roles/desktop-power)
+      # Managed by Easy Home NAS (ansible/roles/desktop-power)
       [Login]
       IdleAction=ignore
       HandleSuspendKey=ignore

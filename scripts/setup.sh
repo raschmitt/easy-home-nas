@@ -401,7 +401,7 @@ EOF
 }
 
 main() {
-	echo "Tandem NAS — assistente de instalação"
+	echo "Easy Home NAS — assistente de instalação"
 	check_dependencies
 	configure_env
 	run_ansible

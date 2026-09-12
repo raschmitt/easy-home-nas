@@ -1,5 +1,5 @@
 ---
-# Tandem NAS — host layer.
+# Easy Home NAS — host layer.
 #
 # Reads configuration from environment variables (the same ones defined in
 # `.env` at the repo root), so run this after exporting them:
@@ -11,7 +11,7 @@
 # settings, firewall). The application layer (Nextcloud, Caddy, fail2ban)
 # is managed separately by `docker compose up -d` at the repo root.
 
-- name: Configure Tandem NAS host layer
+- name: Configure Easy Home NAS host layer
   hosts: nas
   become: true
   vars:

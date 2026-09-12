@@ -1,6 +1,6 @@
 # Remote access
 
-Tandem NAS exposes Nextcloud directly to the public internet over HTTPS —
+Easy Home NAS exposes Nextcloud directly to the public internet over HTTPS —
 no VPN required to use it from your phone or a browser anywhere. That
 convenience is the reason the checklist below is mandatory, not optional.
 
@@ -112,8 +112,8 @@ a rushed step, since it affects existing mail/site traffic too.
    - **Manual**, if you'd rather not use Terraform:
      ```bash
      cloudflared tunnel login          # opens a browser to authorize
-     cloudflared tunnel create tandem-nas
-     cloudflared tunnel route dns tandem-nas $TANDEM_PUBLIC_DOMAIN
+     cloudflared tunnel create easy-home-nas
+     cloudflared tunnel route dns easy-home-nas $TANDEM_PUBLIC_DOMAIN
      cp docker/cloudflared/config.yml.example docker/cloudflared/config.yml
      # edit config.yml: set `tunnel:` to your tunnel ID and `hostname:` to
      # $TANDEM_PUBLIC_DOMAIN

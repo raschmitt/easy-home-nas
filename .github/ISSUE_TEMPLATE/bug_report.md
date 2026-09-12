@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Something in Tandem NAS doesn't work as documented
+about: Something in Easy Home NAS doesn't work as documented
 labels: bug
 ---
 

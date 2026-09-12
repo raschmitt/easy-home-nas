@@ -1,12 +1,12 @@
-# Tandem NAS
+# Easy Home NAS
 
-[![CI](https://github.com/OWNER/tandem-nas/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/tandem-nas/actions/workflows/ci.yml)
+[![CI](https://github.com/raschmitt/easy-home-nas/actions/workflows/ci.yml/badge.svg)](https://github.com/raschmitt/easy-home-nas/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An open-source, self-hosted NAS stack: two disks mirrored in sync ("tandem"),
-redundant storage, automatic versioned backups, multi-user with individual
-quotas, and remote access from the official mobile apps or any browser — no
-VPN required.
+An open-source, self-hosted NAS stack: two disks mirrored for redundant
+storage, automatic versioned backups, multi-user with individual quotas, and
+remote access from the official mobile apps or any browser — no VPN
+required.
 
 Built to run on an **already-in-use Ubuntu Desktop machine**, not a clean
 dedicated appliance — it's designed to coexist with whatever else is running
@@ -59,32 +59,32 @@ None of this is hardcoded — different disk counts/sizes work too, see
 
 ## Quickstart
 
-The fastest way to get a Tandem NAS running — clones the repo and launches
+The fastest way to get an Easy Home NAS running — clones the repo and launches
 the guided setup wizard in one command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OWNER/tandem-nas/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/raschmitt/easy-home-nas/main/install.sh | bash
 ```
 
 The wizard (`scripts/setup.sh`) walks through everything below
 interactively — picking disks, generating passwords, running Ansible,
 detecting whether you need direct exposure or Cloudflare Tunnel, and
 starting the stack — confirming before anything destructive. It's safe to
-re-run if a step fails partway through. Set `TANDEM_NAS_DIR` first if you
-want the repo cloned somewhere other than `~/tandem-nas`.
+re-run if a step fails partway through. Set `EASY_HOME_NAS_DIR` first if you
+want the repo cloned somewhere other than `~/easy-home-nas`.
 
 Already cloned the repo yourself? Run the same wizard directly:
 
 ```bash
-cd tandem-nas && scripts/setup.sh
+cd easy-home-nas && scripts/setup.sh
 ```
 
 The rest of this section is the same process done manually, for anyone who
 wants full control or to understand what each step actually does.
 
 ```bash
-git clone https://github.com/OWNER/tandem-nas.git
-cd tandem-nas
+git clone https://github.com/raschmitt/easy-home-nas.git
+cd easy-home-nas
 ```
 
 ```bash
@@ -196,7 +196,7 @@ are worth knowing about upfront rather than debugging cold:
 ## Repository layout
 
 ```
-tandem-nas/
+easy-home-nas/
 ├── install.sh                # One-line bootstrap: clone + launch scripts/setup.sh
 ├── docker-compose.yml       # Nextcloud, Postgres, Redis, Caddy, fail2ban
 ├── docker/                  # Caddy custom build + fail2ban jail/filter config
