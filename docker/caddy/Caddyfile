@@ -1,5 +1,17 @@
 {
 	email {$TANDEM_ACME_EMAIL}
+	servers {
+		# Without this, {remote_host} resolves to whatever sits directly in
+		# front of Caddy on the docker network — the cloudflared container's
+		# own IP when using Path B (Cloudflare Tunnel), the same for every
+		# visitor. That collapses the rate limiter below into one shared
+		# bucket for the entire site instead of one per real visitor.
+		# private_ranges covers both cloudflared (Path B) and a reverse
+		# proxy/router on the LAN (Path A); Cloudflare's own edge IPs are
+		# additionally checked against Cf-Connecting-Ip.
+		trusted_proxies static private_ranges
+		client_ip_headers Cf-Connecting-Ip X-Forwarded-For
+	}
 }
 
 (security_headers) {
@@ -23,10 +35,22 @@
 			match {
 				path /login*
 				path /ocs/v2.php/core/getapppassword*
-				path /remote.php/dav*
 			}
 			key {remote_host}
 			events 20
+			window 1m
+		}
+		# File sync/upload (WebDAV) is legitimate high-frequency traffic —
+		# a phone backing up a camera roll fires one PUT per photo, easily
+		# bursting past a login-strength limit. Separate, much higher
+		# ceiling than login_zone; still per real visitor IP now that
+		# trusted_proxies (above) is set.
+		zone dav_zone {
+			match {
+				path /remote.php/dav*
+			}
+			key {remote_host}
+			events 600
 			window 1m
 		}
 		zone general_zone {
