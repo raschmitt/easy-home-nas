@@ -194,7 +194,7 @@ are worth knowing about upfront rather than debugging cold:
 
 ```
 easy-home-nas/
-├── install.sh                # One-line bootstrap: clone + launch scripts/setup.sh
+├── install.sh               # One-line bootstrap: clone + launch scripts/setup.sh
 ├── docker-compose.yml       # Nextcloud, Postgres, Redis, Caddy, fail2ban
 ├── docker/                  # Caddy custom build + fail2ban jail/filter config
 ├── ansible/                 # Host layer: ZFS, udev/systemd, power, firewall
@@ -203,9 +203,9 @@ easy-home-nas/
 │       ├── udev-backup-trigger/
 │       ├── desktop-power/
 │       └── hardening/
-├── terraform/                # Optional: Cloudflare Tunnel as IaC (Path B)
+├── terraform/               # Optional: Cloudflare Tunnel as IaC (Path B)
 ├── scripts/                 # setup.sh (guided wizard), backup.sh, restore.sh, provision-user.sh, ...
-├── tests/                    # bats unit/integration tests for scripts/
+├── tests/                   # bats unit/integration tests for scripts/
 └── docs/                    # Disaster recovery, adding users, remote/mobile access
 ```
 
