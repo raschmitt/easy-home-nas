@@ -196,7 +196,7 @@ easy-home-nas/
 │       ├── desktop-power/
 │       └── hardening/
 ├── terraform/           # Optional: Cloudflare Tunnel as IaC (Path B)
-├── scripts/             # setup.sh (guided wizard), backup.sh, restore.sh, provision-user.sh, ...
+├── scripts/             # setup.sh (guided wizard), backup.sh, restore.sh, ...
 ├── tests/               # bats unit/integration tests for scripts/
 └── docs/                # Disaster recovery, adding users, remote/mobile access
 ```
