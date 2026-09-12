@@ -128,6 +128,37 @@ From then on, connecting that disk automatically runs a backup
 [`docs/disaster-recovery.md`](docs/disaster-recovery.md) for restoring from
 it, including full pool-loss recovery.
 
+## Troubleshooting
+
+This project was built by running the Ansible playbook against a real,
+already-in-use desktop rather than a clean VM, and two things came up that
+are worth knowing about upfront rather than debugging cold:
+
+- **An `apt`/`dpkg` task fails, but the error mentions packages your role
+  never asked for** (commonly `linux-headers-*`/`linux-image-*` for a
+  kernel you're not even running, or a DKMS driver like an out-of-tree
+  Wi-Fi module). This means the machine already had broken/pending
+  packages before you touched anything — very common on a desktop that's
+  been running for a while and has a kernel upgrade stuck behind a DKMS
+  module that no longer builds. `apt`'s exit code reflects the whole
+  transaction, so it looks like our role failed even when the package it
+  actually needed (`zfsutils-linux`, `restic`, `ufw`, ...) configured
+  fine. Every apt-installing task in this project's roles verifies its
+  *own* package via `dpkg-query` afterwards specifically because of this —
+  if that verification task also fails, then it's a real problem; if only
+  the raw `apt-get` task shows red but the verification task right after
+  it is `ok`, you can ignore it (or run `sudo apt --fix-broken install`
+  separately to clean up your system's unrelated package state).
+- **`zpool create` refuses a disk that "looks" empty.** `lsblk` won't show
+  a filesystem type for a disk with no current partitions, but a stale
+  partition table (leftover MBR/GPT signature, or even a corrupt EFI
+  label) from a *previous* use of that disk is still enough for `zpool
+  create` to refuse it, and for this role's own pre-create safety check to
+  refuse it first. That's the safety check working as intended — set
+  `TANDEM_ZFS_CONFIRM_WIPE=true` in `.env` once you've confirmed (e.g. with
+  `sudo blkid /dev/disk/by-id/...`) that the disk really is meant to be
+  wiped.
+
 ## Repository layout
 
 ```

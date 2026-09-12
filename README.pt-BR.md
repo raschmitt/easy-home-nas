@@ -135,6 +135,38 @@ A partir daí, conectar esse disco dispara backup automaticamente
 [`docs/disaster-recovery.md`](docs/disaster-recovery.md) para restaurar a
 partir dele, incluindo recuperação de perda total do pool.
 
+## Resolução de problemas
+
+Este projeto foi construído rodando o playbook Ansible contra um desktop
+real já em uso, não uma VM limpa, e duas coisas apareceram que valem a pena
+conhecer de antemão em vez de debugar do zero:
+
+- **Uma tarefa de `apt`/`dpkg` falha, mas o erro menciona pacotes que sua
+  role nunca pediu** (comumente `linux-headers-*`/`linux-image-*` de um
+  kernel que você nem está rodando, ou um driver DKMS como um módulo Wi-Fi
+  fora da árvore do kernel). Isso significa que a máquina já tinha pacotes
+  quebrados/pendentes antes de você mexer em qualquer coisa — muito comum
+  num desktop rodando há um tempo, com uma atualização de kernel travada
+  atrás de um módulo DKMS que não compila mais. O código de saída do `apt`
+  reflete a transação inteira, então parece que nossa role falhou mesmo
+  quando o pacote que ela realmente precisava (`zfsutils-linux`, `restic`,
+  `ufw`, ...) configurou normalmente. Toda tarefa de instalação via apt
+  neste projeto verifica seu *próprio* pacote via `dpkg-query` depois,
+  exatamente por causa disso — se essa tarefa de verificação também
+  falhar, aí sim é um problema real; se só a tarefa bruta de `apt-get`
+  aparece em vermelho mas a tarefa de verificação logo depois está `ok`,
+  pode ignorar (ou rodar `sudo apt --fix-broken install` separadamente
+  para limpar o estado de pacotes não relacionado da sua máquina).
+- **`zpool create` recusa um disco que "parece" vazio.** O `lsblk` não
+  mostra tipo de filesystem num disco sem partições atuais, mas uma tabela
+  de partição antiga (assinatura MBR/GPT residual, ou até um EFI label
+  corrompido) de um *uso anterior* daquele disco ainda é suficiente para o
+  `zpool create` recusar, e para a checagem de segurança desta role
+  recusar primeiro. Isso é a checagem de segurança funcionando como
+  deveria — defina `TANDEM_ZFS_CONFIRM_WIPE=true` no `.env` depois de
+  confirmar (ex: com `sudo blkid /dev/disk/by-id/...`) que o disco
+  realmente pode ser apagado.
+
 ## Estrutura do repositório
 
 ```
