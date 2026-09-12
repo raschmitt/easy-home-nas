@@ -15,6 +15,9 @@ nextcloud-data/
 *.swp
 *~
 
+# Local Claude Code session state, not part of the project
+.claude/
+
 # Ansible
 *.retry
 .vault-pass

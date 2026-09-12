@@ -1,9 +1,33 @@
 ---
+# See the same pattern (and the reasoning) in zfs-mirror/tasks/main.yml —
+# apt's exit code can reflect an unrelated broken package on a long-lived
+# desktop, not a problem with the package this role actually needs.
 - name: Install restic
   ansible.builtin.apt:
     name: restic
     state: present
     update_cache: true
+  register: tandem_restic_apt_result
+  failed_when: false
+
+- name: Verify restic actually configured, regardless of apt's exit code
+  ansible.builtin.command: "dpkg-query -W -f='${Status}' restic"
+  register: tandem_restic_pkg_check
+  changed_when: false
+  failed_when: false
+
+- name: Fail with a clear message if restic isn't actually installed
+  ansible.builtin.assert:
+    that:
+      - "'install ok installed' in tandem_restic_pkg_check.stdout"
+    fail_msg: >-
+      restic did not end up correctly installed. apt reported:
+      {{ tandem_restic_apt_result.msg | default('see output above') }}
+      This is often caused by an UNRELATED broken package on a long-lived
+      desktop (e.g. a DKMS driver failing to build against a pending kernel
+      upgrade) rather than a problem with restic itself — check
+      `sudo apt-get install -f` output before re-running this role.
+    quiet: true
 
 - name: Ensure the install root exists
   ansible.builtin.file:

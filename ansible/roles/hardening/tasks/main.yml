@@ -1,4 +1,7 @@
 ---
+# See the same pattern (and the reasoning) in zfs-mirror/tasks/main.yml —
+# apt's exit code can reflect an unrelated broken package on a long-lived
+# desktop, not a problem with the packages this role actually needs.
 - name: Install baseline hardening packages
   ansible.builtin.apt:
     name:
@@ -6,6 +9,33 @@
       - unattended-upgrades
     state: present
     update_cache: true
+  register: tandem_hardening_apt_result
+  failed_when: false
+
+- name: Verify hardening packages actually configured, regardless of apt's exit code
+  ansible.builtin.command: "dpkg-query -W -f='${Status}' {{ item }}"
+  register: tandem_hardening_pkg_check
+  changed_when: false
+  failed_when: false
+  loop:
+    - ufw
+    - unattended-upgrades
+
+- name: Fail with a clear message if a hardening package isn't actually installed
+  ansible.builtin.assert:
+    that:
+      - "'install ok installed' in item.stdout"
+    fail_msg: >-
+      {{ item.item }} did not end up correctly installed. apt reported:
+      {{ tandem_hardening_apt_result.msg | default('see output above') }}
+      This is often caused by an UNRELATED broken package on a long-lived
+      desktop (e.g. a DKMS driver failing to build against a pending kernel
+      upgrade) rather than a problem with this package itself — check
+      `sudo apt-get install -f` output before re-running this role.
+    quiet: true
+  loop: "{{ tandem_hardening_pkg_check.results }}"
+  loop_control:
+    label: "{{ item.item }}"
 
 - name: Enable unattended security upgrades
   ansible.builtin.copy:

@@ -31,8 +31,11 @@
     restic_repository_cold: "{{ lookup('env', 'RESTIC_REPOSITORY_COLD') }}"
     restic_password_cold: "{{ lookup('env', 'RESTIC_PASSWORD_COLD') }}"
 
-    tandem_desktop_user: "{{ tandem_desktop_user | default(ansible_env.SUDO_USER | default(ansible_user_id, true), true) }}"
-
+    # tandem_desktop_user is intentionally NOT set here: it must come from
+    # inventory.ini ([nas:vars]) so it can differ per host, falling back to
+    # desktop-power's own role default (ansible_env.SUDO_USER) if unset.
+    # Redefining it in terms of itself at play level would shadow the
+    # inventory value with an infinite self-reference.
     tandem_harden_ssh: "{{ lookup('env', 'TANDEM_HARDEN_SSH') | default('false', true) }}"
 
   pre_tasks:

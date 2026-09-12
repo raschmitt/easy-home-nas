@@ -16,6 +16,12 @@
     - hibernate.target
     - hybrid-sleep.target
 
+- name: Ensure /etc/systemd/logind.conf.d exists
+  ansible.builtin.file:
+    path: /etc/systemd/logind.conf.d
+    state: directory
+    mode: "0755"
+
 - name: Never let logind act on lid switch / idle / power key
   ansible.builtin.copy:
     dest: /etc/systemd/logind.conf.d/99-tandem-nas.conf

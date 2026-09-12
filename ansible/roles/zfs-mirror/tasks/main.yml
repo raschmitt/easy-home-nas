@@ -1,4 +1,10 @@
 ---
+# On a desktop already in use for years, `apt` can fail on packages
+# completely unrelated to ZFS (e.g. a third-party DKMS driver that doesn't
+# build against a pending kernel upgrade) — dpkg reports the whole
+# transaction as failed even though zfsutils-linux itself configured fine.
+# Don't let that unrelated breakage block this role: verify the actual
+# packages we need instead of trusting apt's aggregate exit code.
 - name: Install ZFS and auto-snapshot tooling
   ansible.builtin.apt:
     name:
@@ -6,6 +12,35 @@
       - zfs-auto-snapshot
     state: present
     update_cache: true
+  register: tandem_zfs_apt_result
+  failed_when: false
+
+- name: Verify zfsutils-linux and zfs-auto-snapshot actually configured, regardless of apt's exit code
+  ansible.builtin.command: "dpkg-query -W -f='${Status}' {{ item }}"
+  register: tandem_zfs_pkg_check
+  changed_when: false
+  failed_when: false
+  loop:
+    - zfsutils-linux
+    - zfs-auto-snapshot
+
+- name: Fail with a clear message if ZFS tooling isn't actually installed
+  ansible.builtin.assert:
+    that:
+      - "'install ok installed' in item.stdout"
+    fail_msg: >-
+      {{ item.item }} did not end up correctly installed. apt reported:
+      {{ tandem_zfs_apt_result.msg | default('see output above') }}
+      This is often caused by an UNRELATED broken package on a long-lived
+      desktop (e.g. a DKMS driver failing to build against a pending kernel
+      upgrade) rather than a problem with ZFS itself — check
+      `sudo apt-get install -f` output and consider `apt-mark hold` on the
+      offending kernel package, or removing the broken driver, before
+      re-running this role.
+    quiet: true
+  loop: "{{ tandem_zfs_pkg_check.results }}"
+  loop_control:
+    label: "{{ item.item }}"
 
 - name: Ensure the zfs kernel module loads at boot
   ansible.builtin.copy:
@@ -50,8 +85,14 @@
       when: not (tandem_zfs_confirm_wipe | bool)
 
 - name: Create the mirrored pool
+  # -f is only added once TANDEM_ZFS_CONFIRM_WIPE is true — the safety check
+  # above already required that same flag before it would let a disk with an
+  # existing signature reach this point, so forcing past zpool's own stale
+  # EFI-label/signature warning here is consistent with a confirmation the
+  # operator already gave, not a separate silent override.
   ansible.builtin.command: >
     zpool create -o ashift={{ tandem_zfs_ashift }}
+    {{ '-f' if (tandem_zfs_confirm_wipe | bool) else '' }}
     {{ tandem_zfs_pool_name }} mirror {{ tandem_zfs_disks | join(' ') }}
   when: tandem_zfs_pool_check.rc != 0
   changed_when: true
@@ -92,24 +133,11 @@
     enabled: true
     state: started
 
-- name: Enable daily snapshot timer
-  ansible.builtin.systemd:
-    name: zfs-auto-snapshot-daily.timer
-    enabled: true
-    state: started
-
-- name: Enable weekly snapshot timer
-  ansible.builtin.systemd:
-    name: zfs-auto-snapshot-weekly.timer
-    enabled: true
-    state: started
-
-- name: Disable overly chatty frequent/hourly snapshots (opinionated default)
-  ansible.builtin.systemd:
-    name: "{{ item }}"
-    enabled: false
-    state: stopped
-  loop:
-    - zfs-auto-snapshot-frequent.timer
-    - zfs-auto-snapshot-hourly.timer
-  failed_when: false
+# zfs-auto-snapshot on Debian/Ubuntu schedules itself via
+# /etc/cron.{hourly,daily,weekly,monthly}/zfs-auto-snapshot (installed and
+# active as soon as the package is installed above) rather than systemd
+# timers — there is nothing to enable here. Each cron script runs
+# `zfs-auto-snapshot --label=<period> --keep=<n> //`, i.e. every pool/dataset,
+# with retention already sane out of the box (24 hourly, 31 daily, 8 weekly,
+# 12 monthly). Remove /etc/cron.d/zfs-auto-snapshot if you don't want the
+# additional every-15-minutes "frequent" snapshots.
