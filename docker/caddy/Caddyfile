@@ -50,7 +50,7 @@
 				path /remote.php/dav*
 			}
 			key {remote_host}
-			events 600
+			events 6000
 			window 1m
 		}
 		zone general_zone {
