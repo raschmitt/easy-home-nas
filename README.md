@@ -62,6 +62,22 @@ None of this is hardcoded — different disk counts/sizes work too, see
 ```bash
 git clone https://github.com/OWNER/tandem-nas.git
 cd tandem-nas
+```
+
+**Guided setup:** `scripts/setup.sh` walks through everything below
+interactively — picking disks, generating passwords, running Ansible,
+detecting whether you need direct exposure or Cloudflare Tunnel, and
+starting the stack — confirming before anything destructive. It's safe to
+re-run if a step fails partway through.
+
+```bash
+scripts/setup.sh
+```
+
+The rest of this section is the same process done manually, for anyone who
+wants full control or to understand what each step actually does.
+
+```bash
 cp .env.example .env
 $EDITOR .env   # fill in your disk by-id paths, domain, passwords, etc.
 ```
@@ -179,7 +195,9 @@ tandem-nas/
 │       ├── udev-backup-trigger/
 │       ├── desktop-power/
 │       └── hardening/
-├── scripts/                 # backup.sh, restore.sh, provision-user.sh, ...
+├── terraform/                # Optional: Cloudflare Tunnel as IaC (Path B)
+├── scripts/                 # setup.sh (guided wizard), backup.sh, restore.sh, provision-user.sh, ...
+├── tests/                    # bats unit/integration tests for scripts/
 └── docs/                    # Disaster recovery, adding users, remote/mobile access
 ```
 

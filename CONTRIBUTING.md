@@ -51,6 +51,10 @@ ansible-lint ansible/
 # Shellcheck on every script
 shellcheck scripts/*.sh scripts/lib/*.sh
 
+# Unit/integration tests for scripts/ (bats-core; apt install bats, or see
+# https://bats-core.readthedocs.io/en/stable/installation.html)
+bats tests/unit/
+
 # Secret scanning
 gitleaks detect --source . --no-git -v   # or --source . to also scan history
 ```
