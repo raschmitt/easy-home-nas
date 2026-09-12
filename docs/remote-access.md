@@ -72,11 +72,11 @@ or an ISP that blocks inbound ports.
 DNS **zone** (the whole domain, not just the subdomain) to be managed by
 Cloudflare, since issuing a public certificate and routing the tunnel both
 happen at the zone level — there's no way to delegate just a subdomain to
-Cloudflare on the free tier. If your domain's DNS is currently elsewhere
-(e.g. Netlify, your registrar's own DNS), migrating means recreating every
-existing record (MX, TXT, your existing site's A/AAAA/CNAME) in Cloudflare
-first, then switching nameservers at your registrar. Do this deliberately,
-not as a rushed step, since it affects existing mail/site traffic too.
+Cloudflare on the free tier. If your domain's DNS is currently hosted
+elsewhere, migrating means recreating every existing record (MX, TXT, your
+existing site's A/AAAA/CNAME) in Cloudflare first, then switching
+nameservers wherever the domain is registered. Do this deliberately, not as
+a rushed step, since it affects existing mail/site traffic too.
 
 1. **Add your domain to Cloudflare** (Free plan is enough).
    - Use the **root domain** (`example.com`), not a subdomain
