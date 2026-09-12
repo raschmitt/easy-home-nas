@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars (git-ignored) and fill in your own values.
+# Find account_id and zone_id on their respective Cloudflare dashboard
+# overview pages (right-hand sidebar of each).
+
+cloudflare_account_id = "REPLACE_WITH_YOUR_ACCOUNT_ID"
+cloudflare_zone_id     = "REPLACE_WITH_YOUR_ZONE_ID"
+public_hostname        = "drive.example.com"

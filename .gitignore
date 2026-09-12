@@ -24,3 +24,12 @@ nextcloud-data/
 # Ansible
 *.retry
 .vault-pass
+
+# Terraform (terraform/) — state contains the tunnel secret, tfvars contain
+# account/zone IDs. The dependency lock file (.terraform.lock.hcl) is NOT
+# ignored — it's meant to be committed for reproducible provider versions.
+terraform/.terraform/
+terraform/terraform.tfvars
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.tfplan

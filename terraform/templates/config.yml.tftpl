@@ -1,0 +1,9 @@
+# Managed by Terraform (terraform/tunnel.tf) — do not edit by hand, changes
+# will be overwritten on the next `terraform apply`.
+tunnel: ${tunnel_id}
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: ${public_hostname}
+    service: ${caddy_service_address}
+  - service: http_status:404

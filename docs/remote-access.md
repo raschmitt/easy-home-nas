@@ -53,26 +53,34 @@ since it affects existing mail/site traffic too.
 2. **Switch nameservers** at your registrar to the two Cloudflare assigns.
    This is the actual cutover — propagation is usually fast (minutes) but
    can take up to 48h.
-3. **Create the tunnel** from this host:
-   ```bash
-   cloudflared tunnel login          # opens a browser to authorize
-   cloudflared tunnel create tandem-nas
-   cloudflared tunnel route dns tandem-nas $TANDEM_PUBLIC_DOMAIN
-   ```
-   This writes `~/.cloudflared/<tunnel-id>.json` (the tunnel's credentials —
-   treat it like a private key).
-4. **Wire it into the stack**:
-   ```bash
-   cp docker/cloudflared/config.yml.example docker/cloudflared/config.yml
-   # edit config.yml: set `tunnel:` to your tunnel ID and `hostname:` to
-   # $TANDEM_PUBLIC_DOMAIN
-   cp ~/.cloudflared/<tunnel-id>.json docker/cloudflared/credentials.json
-   ```
-   In `.env`, set `TANDEM_CADDY_ADDRESS_PREFIX=http://` — this tells Caddy to
-   serve plain HTTP instead of also trying (and endlessly failing) to get
-   its own Let's Encrypt certificate, since Cloudflare's edge is what
-   terminates public HTTPS now.
-5. **Start the tunnel service**, which is opt-in via a Compose profile:
+3. **Create the tunnel and wire it into the stack.** Two ways to do this:
+
+   - **Terraform (recommended, see [`terraform/README.md`](../terraform/README.md))**
+     — creates the tunnel and its DNS record, and writes
+     `docker/cloudflared/config.yml` + `credentials.json` directly:
+     ```bash
+     cd terraform
+     export CLOUDFLARE_API_TOKEN=...   # scoped token, see terraform/README.md
+     cp terraform.tfvars.example terraform.tfvars && $EDITOR terraform.tfvars
+     terraform init && terraform apply
+     ```
+   - **Manual**, if you'd rather not use Terraform:
+     ```bash
+     cloudflared tunnel login          # opens a browser to authorize
+     cloudflared tunnel create tandem-nas
+     cloudflared tunnel route dns tandem-nas $TANDEM_PUBLIC_DOMAIN
+     cp docker/cloudflared/config.yml.example docker/cloudflared/config.yml
+     # edit config.yml: set `tunnel:` to your tunnel ID and `hostname:` to
+     # $TANDEM_PUBLIC_DOMAIN
+     cp ~/.cloudflared/<tunnel-id>.json docker/cloudflared/credentials.json
+     chmod 644 docker/cloudflared/credentials.json  # container reads it as a different uid
+     ```
+
+   Either way, in `.env` set `TANDEM_CADDY_ADDRESS_PREFIX=http://` — this
+   tells Caddy to serve plain HTTP instead of also trying (and endlessly
+   failing) to get its own Let's Encrypt certificate, since Cloudflare's
+   edge is what terminates public HTTPS now.
+4. **Start the tunnel service**, which is opt-in via a Compose profile:
    ```bash
    docker compose --profile tunnel up -d
    ```
