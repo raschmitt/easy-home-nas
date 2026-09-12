@@ -26,13 +26,6 @@ header() {
 	echo "=== $* ==="
 }
 
-gen_password() {
-	# Not `tr | head -c`: under `set -o pipefail`, head closing the pipe
-	# early sends tr a SIGPIPE that turns into a nonzero pipeline status,
-	# which would abort the whole script the first time this runs.
-	head -c 24 <(tr -dc 'A-Za-z0-9' </dev/urandom)
-}
-
 set_env_var() {
 	local key="$1" value="$2"
 	if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then

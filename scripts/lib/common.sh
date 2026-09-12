@@ -22,3 +22,19 @@ confirm() {
 	read -r -p "$prompt [y/N] " reply
 	[ "$reply" = "y" ] || [ "$reply" = "Y" ]
 }
+
+gen_password() {
+	# Not a plain `tr | head -c`: under `set -o pipefail`, head closing the
+	# pipe early sends tr a SIGPIPE that turns into a nonzero pipeline
+	# status, which would abort the whole script under `set -e`. The `||
+	# true` absorbs that. The loop guards the other failure mode: on some
+	# environments a single read from /dev/urandom through the pipeline can
+	# come up short of what was asked for (observed intermittently in CI,
+	# never locally) — keep pulling more until the password is actually the
+	# requested length instead of silently returning a shorter one.
+	local pw=""
+	while [ "${#pw}" -lt 24 ]; do
+		pw+="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$((24 - ${#pw}))" || true)"
+	done
+	printf '%s' "$pw"
+}

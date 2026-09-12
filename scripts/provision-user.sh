@@ -41,10 +41,7 @@ done
 require_cmd docker
 
 if [ -z "$password" ]; then
-	# Not `tr | head -c`: under `set -o pipefail`, head closing the pipe
-	# early sends tr a SIGPIPE that turns into a nonzero pipeline status,
-	# which would abort the script right here.
-	password="$(head -c 24 <(tr -dc 'A-Za-z0-9' </dev/urandom))"
+	password="$(gen_password)"
 	generated=true
 else
 	generated=false
