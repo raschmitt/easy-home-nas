@@ -92,6 +92,16 @@ the NAS offline), and applies baseline firewall rules.
 
 ### 2. Application layer (Docker Compose) — Nextcloud, Caddy, fail2ban
 
+Before this step: **if you're on a residential internet connection, there's
+a good chance your ISP blocks inbound ports outright**, regardless of
+correct router port-forward rules (this is common on residential
+fiber/cable in Brazil and elsewhere, and just as common behind CG-NAT). If
+so, the direct-exposure path below won't work no matter how you configure
+the router, and you'll want Cloudflare Tunnel instead — see ["Which path do
+you need?"](docs/remote-access.md#which-path-do-you-need) for a 2-minute
+test that tells you which one applies *before* you spend time on port
+forwarding and DNS.
+
 ```bash
 cd ..
 docker compose up -d

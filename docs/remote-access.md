@@ -4,7 +4,42 @@ Tandem NAS exposes Nextcloud directly to the public internet over HTTPS —
 no VPN required to use it from your phone or a browser anywhere. That
 convenience is the reason the checklist below is mandatory, not optional.
 
-## Prerequisites
+## Which path do you need?
+
+There are two ways to get a real public HTTPS URL, and **most people on a
+residential internet connection will need the second one**, not the first:
+
+| | Path A: Direct exposure | Path B: Cloudflare Tunnel |
+|---|---|---|
+| Works when... | Your ISP actually routes inbound traffic to your router | Your ISP blocks inbound ports outright (common on residential fiber/cable in Brazil and elsewhere), or you're behind CG-NAT |
+| Requires | Port forward on your router; DDNS if your IP is dynamic | Your domain's DNS zone hosted on Cloudflare (free) |
+| Where it's documented | "Path A" below | "Path B" below, `terraform/README.md` |
+
+**Test which one you have before committing to either path.** Set up port
+forwarding on your router first (forward TCP 80 and TCP+UDP 443 to this
+machine's local IP — see Path A step 2), then check from *outside* your
+network, independent of DNS or certificates:
+
+```bash
+# Replace with your router's actual public IP (check the router's own
+# status page — WAN/Internet section — not just "what's my IP" from inside
+# your network, so you can compare the two and catch CG-NAT too).
+curl -s "https://check-host.net/check-tcp?host=YOUR_PUBLIC_IP:80&max_nodes=3" \
+  -H "Accept: application/json"
+# then, a few seconds later, fetch the result with the permanent_link's
+# request_id:
+curl -s "https://check-host.net/check-result/REQUEST_ID" -H "Accept: application/json"
+```
+
+If every node reports `"Connection timed out"` — not just one, and not just
+on port 80/443 specifically (try a couple of other ports too, e.g. 8443, to
+rule out the ISP blocking only "well-known" server ports) — port forwarding
+genuinely cannot work no matter how you configure the router. Go straight to
+**Path B**. If you get a real connection (even a TLS/HTTP-level error is
+fine — that means the TCP connection itself succeeded), **Path A** will
+work.
+
+## Path A: Direct exposure (Caddy + Let's Encrypt)
 
 1. **A domain or subdomain** pointing at this machine's public IP
    (`TANDEM_PUBLIC_DOMAIN` in `.env`). Caddy needs this to request a
@@ -23,36 +58,46 @@ convenience is the reason the checklist below is mandatory, not optional.
      client depends entirely on your DNS provider — pick one and add it as
      its own role if you need it.
 
-## Behind CG-NAT or an ISP that blocks inbound ports: Cloudflare Tunnel
+With these three in place, `docker compose up -d` (per the main README) is
+all you need — Caddy handles the certificate automatically on first start.
 
-Some residential ISPs block inbound 80/443 outright (common in Brazil, for
-example) even when you have a real public IP and correct port-forward rules
-— you'll see `zpool`-style symptoms like every inbound port timing out from
-multiple external vantage points, not just 80/443. If that's your situation,
-direct exposure per the prerequisites above won't work no matter how the
-router is configured, and Cloudflare Tunnel is the practical alternative:
-this host makes an *outbound* connection to Cloudflare's edge, which then
+## Path B: Cloudflare Tunnel
+
+This host makes an *outbound* connection to Cloudflare's edge, which
 terminates public HTTPS and proxies traffic back over that tunnel — no
-inbound port needs to be reachable at all.
+inbound port needs to be reachable at all, so it works from behind CG-NAT
+or an ISP that blocks inbound ports.
 
-Trade-off: Cloudflare Tunnel requires your domain's DNS zone (the whole
-domain, not just the subdomain) to be managed by Cloudflare, since issuing
-a public certificate and routing the tunnel both happen at the zone level.
-If your domain's DNS is currently elsewhere (e.g. Netlify, your registrar),
-migrating the zone means recreating every existing record (MX, TXT, your
-existing site's A/AAAA/CNAME) in Cloudflare first, then switching
-nameservers at your registrar — do this deliberately, not as a rushed step,
-since it affects existing mail/site traffic too.
+**Trade-off to accept going in:** Cloudflare Tunnel requires your domain's
+DNS **zone** (the whole domain, not just the subdomain) to be managed by
+Cloudflare, since issuing a public certificate and routing the tunnel both
+happen at the zone level — there's no way to delegate just a subdomain to
+Cloudflare on the free tier. If your domain's DNS is currently elsewhere
+(e.g. Netlify, your registrar's own DNS), migrating means recreating every
+existing record (MX, TXT, your existing site's A/AAAA/CNAME) in Cloudflare
+first, then switching nameservers at your registrar. Do this deliberately,
+not as a rushed step, since it affects existing mail/site traffic too.
 
-1. **Add your domain to Cloudflare** (Free plan is enough) and let it scan
-   your existing DNS records. Verify every record matches what you already
-   have before continuing — for any record that's part of your existing
-   site/mail (not the new NAS subdomain), set it to **DNS only** (grey
-   cloud), not proxied, so Cloudflare doesn't change how that traffic
-   behaves.
+1. **Add your domain to Cloudflare** (Free plan is enough).
+   - Use the **root domain** (`example.com`), not a subdomain
+     (`drive.example.com`) — Cloudflare's "Add a site" flow explicitly
+     rejects subdomains ("Please ensure you are providing the root domain
+     and not any subdomains"), and even when it's accepted the underlying
+     onboarding for a subdomain hangs indefinitely rather than erroring
+     cleanly. This isn't a bug in your setup — Cloudflare zones are only
+     ever root-domain-scoped.
+   - Let it scan your existing DNS records, and **verify every record
+     matches what you already have** before continuing.
+   - For any record that's part of your existing site/mail (not the new
+     NAS subdomain), set it to **DNS only** (grey cloud), not proxied, so
+     Cloudflare doesn't change how that traffic behaves. Only the new
+     tunnel record (added in step 3) needs to be proxied.
 2. **Switch nameservers** at your registrar to the two Cloudflare assigns.
    This is the actual cutover — propagation is usually fast (minutes) but
-   can take up to 48h.
+   can take up to 48h. If the onboarding page's DNS scan spins forever
+   (a known rough edge for some zones), don't wait it out — reload the
+   "Add a site" flow from scratch; the zone itself is often created
+   already even when the scan step hangs.
 3. **Create the tunnel and wire it into the stack.** Two ways to do this:
 
    - **Terraform (recommended, see [`terraform/README.md`](../terraform/README.md))**
@@ -88,16 +133,23 @@ since it affects existing mail/site traffic too.
 Verify end to end: `curl -I https://$TANDEM_PUBLIC_DOMAIN/status.php` should
 return `200`, and `openssl s_client -connect $TANDEM_PUBLIC_DOMAIN:443
 -servername $TANDEM_PUBLIC_DOMAIN` should show a valid Let's Encrypt
-certificate issued through Cloudflare.
+certificate issued through Cloudflare. For extra confidence that it's
+reachable from outside your own network (not just from this host), rerun
+the `check-host.net` check from the diagnostic above against
+`$TANDEM_PUBLIC_DOMAIN:443` instead of your router's IP.
 
 ## What's already protecting this by default
 
+Applies whichever path you used — Caddy sits in front of Nextcloud either
+way, direct or tunneled:
+
 | Layer | What it does |
 |---|---|
-| Caddy | Automatic HTTPS via Let's Encrypt, HSTS + security headers, rate limiting on `/login` and DAV endpoints (`caddy-ratelimit`, see `docker/caddy/Caddyfile`) |
+| Caddy | Automatic HTTPS via Let's Encrypt (Path A) or plain HTTP behind Cloudflare's edge TLS (Path B); HSTS + security headers either way; rate limiting on `/login` and DAV endpoints (`caddy-ratelimit`, see `docker/caddy/Caddyfile`) |
 | fail2ban | Bans an IP for 1h after 5 failed Nextcloud logins in 10 minutes (`docker/fail2ban/jail.d/nextcloud.conf`) |
 | Nextcloud | Built-in brute-force throttling, independent of fail2ban |
 | ufw (host) | Only 22 (rate-limited), 80, 443 open; default-deny inbound otherwise |
+| Cloudflare (Path B only) | DDoS protection and WAF at the edge, ahead of everything above |
 
 ## Turn on 2FA (do this before inviting anyone else)
 
@@ -121,7 +173,7 @@ Point the official Nextcloud apps at `https://<TANDEM_PUBLIC_DOMAIN>`:
 - Desktop sync clients: [nextcloud.com/install](https://nextcloud.com/install/)
 
 No VPN, no special network config on the client side — it's a normal HTTPS
-endpoint.
+endpoint, regardless of which path (A or B) you used to get it.
 
 ## SSH stays separate
 
