@@ -1,0 +1,79 @@
+---
+- name: Install baseline hardening packages
+  ansible.builtin.apt:
+    name:
+      - ufw
+      - unattended-upgrades
+    state: present
+    update_cache: true
+
+- name: Enable unattended security upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/51-tandem-nas-unattended.conf
+    mode: "0644"
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+
+- name: Allow SSH through ufw (matching the port already in use)
+  community.general.ufw:
+    rule: limit
+    port: "{{ tandem_ssh_port }}"
+    proto: tcp
+
+- name: Allow HTTP/HTTPS through ufw (Caddy/Nextcloud public access)
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - "80"
+    - "443"
+
+- name: Allow any extra project-defined ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop: "{{ tandem_ufw_extra_allow_tcp }}"
+
+- name: Set default deny incoming / allow outgoing
+  community.general.ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - { direction: incoming, policy: deny }
+    - { direction: outgoing, policy: allow }
+
+- name: Enable ufw
+  community.general.ufw:
+    state: enabled
+
+- name: SSH hardening (opt-in — see TANDEM_HARDEN_SSH in .env.example)
+  when: tandem_harden_ssh | bool
+  block:
+    - name: Refuse to disable password auth without a verified authorized_keys file
+      ansible.builtin.stat:
+        path: "/home/{{ tandem_desktop_user | default(ansible_user_id) }}/.ssh/authorized_keys"
+      register: tandem_authorized_keys
+
+    - name: Fail if no SSH key is on file for the admin user
+      ansible.builtin.assert:
+        that:
+          - tandem_authorized_keys.stat.exists
+          - tandem_authorized_keys.stat.size > 0
+        fail_msg: >-
+          TANDEM_HARDEN_SSH is true but no authorized_keys file was found
+          for the admin user. Add your SSH public key first, or this would
+          lock you out of the machine entirely.
+        quiet: true
+
+    - name: Disable SSH password authentication
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config.d/99-tandem-nas.conf
+        mode: "0644"
+        content: |
+          PasswordAuthentication no
+          PermitRootLogin no
+          KbdInteractiveAuthentication no
+      notify: Restart sshd

@@ -1,0 +1,52 @@
+---
+# Tandem NAS — host layer.
+#
+# Reads configuration from environment variables (the same ones defined in
+# `.env` at the repo root), so run this after exporting them:
+#
+#   set -a && source ../.env && set +a
+#   ansible-playbook -i inventory.ini playbook.yml --ask-become-pass
+#
+# This playbook only touches the HOST (disks, systemd, udev, GNOME power
+# settings, firewall). The application layer (Nextcloud, Caddy, fail2ban)
+# is managed separately by `docker compose up -d` at the repo root.
+
+- name: Configure Tandem NAS host layer
+  hosts: nas
+  become: true
+  vars:
+    tandem_zfs_pool_name: "{{ lookup('env', 'TANDEM_ZFS_POOL_NAME') | default('tandem', true) }}"
+    tandem_zfs_disks: "{{ [lookup('env', 'TANDEM_ZFS_DISK_1'), lookup('env', 'TANDEM_ZFS_DISK_2')] | select('string') | reject('equalto', '') | list }}"
+    tandem_zfs_dataset_nextcloud: "{{ lookup('env', 'TANDEM_ZFS_DATASET_NEXTCLOUD') | default(tandem_zfs_pool_name + '/nextcloud', true) }}"
+    tandem_zfs_mountpoint_nextcloud: "{{ lookup('env', 'TANDEM_ZFS_MOUNTPOINT_NEXTCLOUD') | default('/srv/tandem-nas/nextcloud-data', true) }}"
+    tandem_zfs_reservation: "{{ lookup('env', 'TANDEM_ZFS_RESERVATION') }}"
+    tandem_zfs_confirm_wipe: "{{ lookup('env', 'TANDEM_ZFS_CONFIRM_WIPE') | default('false', true) }}"
+
+    tandem_backup_disk_label: "{{ lookup('env', 'TANDEM_BACKUP_DISK_LABEL') | default('TANDEM_BACKUP', true) }}"
+    tandem_backup_mountpoint: "{{ lookup('env', 'TANDEM_BACKUP_MOUNTPOINT') | default('/mnt/tandem-backup', true) }}"
+    tandem_repo_root: "{{ playbook_dir }}/.."
+    tandem_install_root: /opt/tandem-nas
+    restic_repository: "{{ lookup('env', 'RESTIC_REPOSITORY') | default('/mnt/tandem-backup/restic-repo', true) }}"
+    restic_password: "{{ lookup('env', 'RESTIC_PASSWORD') }}"
+    restic_repository_cold: "{{ lookup('env', 'RESTIC_REPOSITORY_COLD') }}"
+    restic_password_cold: "{{ lookup('env', 'RESTIC_PASSWORD_COLD') }}"
+
+    tandem_desktop_user: "{{ tandem_desktop_user | default(ansible_env.SUDO_USER | default(ansible_user_id, true), true) }}"
+
+    tandem_harden_ssh: "{{ lookup('env', 'TANDEM_HARDEN_SSH') | default('false', true) }}"
+
+  pre_tasks:
+    - name: Fail fast if required ZFS disk variables are missing
+      ansible.builtin.assert:
+        that:
+          - tandem_zfs_disks | length >= 2
+        fail_msg: >-
+          TANDEM_ZFS_DISK_1 / TANDEM_ZFS_DISK_2 are not set. Export your .env
+          (set -a && source ../.env && set +a) before running this playbook.
+        quiet: true
+
+  roles:
+    - zfs-mirror
+    - udev-backup-trigger
+    - desktop-power
+    - hardening

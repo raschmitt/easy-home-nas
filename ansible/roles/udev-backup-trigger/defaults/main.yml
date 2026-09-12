@@ -1,0 +1,10 @@
+---
+tandem_backup_disk_label: TANDEM_BACKUP
+tandem_backup_mountpoint: /mnt/tandem-backup
+tandem_repo_root: "{{ playbook_dir }}/.."
+tandem_install_root: /opt/tandem-nas
+tandem_zfs_mountpoint_nextcloud: /srv/tandem-nas/nextcloud-data
+restic_repository: /mnt/tandem-backup/restic-repo
+restic_password: ""
+restic_repository_cold: ""
+restic_password_cold: ""

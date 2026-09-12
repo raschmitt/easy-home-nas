@@ -1,0 +1,51 @@
+---
+- name: Install restic
+  ansible.builtin.apt:
+    name: restic
+    state: present
+    update_cache: true
+
+- name: Ensure the install root exists
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ tandem_install_root }}"
+    - "{{ tandem_install_root }}/scripts"
+    - "{{ tandem_install_root }}/scripts/lib"
+
+- name: Deploy backup/restore scripts
+  ansible.builtin.copy:
+    src: "{{ tandem_repo_root }}/scripts/{{ item }}"
+    dest: "{{ tandem_install_root }}/scripts/{{ item }}"
+    mode: "0755"
+  loop:
+    - backup.sh
+    - restore.sh
+    - lib/common.sh
+
+- name: Template the backup environment file (contains the restic passphrase)
+  ansible.builtin.template:
+    src: backup.env.j2
+    dest: "{{ tandem_install_root }}/backup.env"
+    mode: "0600"
+    owner: root
+    group: root
+
+- name: Install the udev rule matching the labeled backup disk
+  ansible.builtin.template:
+    src: 99-tandem-backup.rules.j2
+    dest: /etc/udev/rules.d/99-tandem-backup.rules
+    mode: "0644"
+  notify: Reload udev rules
+
+- name: Install the systemd unit that runs the backup
+  ansible.builtin.template:
+    src: tandem-backup.service.j2
+    dest: /etc/systemd/system/tandem-backup.service
+    mode: "0644"
+  notify: Reload systemd units
+
+- name: Flush handlers so the new rule/unit is active immediately
+  ansible.builtin.meta: flush_handlers

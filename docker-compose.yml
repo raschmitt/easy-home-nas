@@ -1,0 +1,108 @@
+name: tandem-nas
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ${TANDEM_DATA_ROOT}/postgres:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - ${TANDEM_DATA_ROOT}/redis:/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nextcloud:
+    image: nextcloud:29-apache
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_HOST_PASSWORD: ${REDIS_PASSWORD}
+      NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER}
+      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD}
+      NEXTCLOUD_TRUSTED_DOMAINS: ${NEXTCLOUD_TRUSTED_DOMAIN}
+      OVERWRITECLIURL: https://${TANDEM_PUBLIC_DOMAIN}
+      OVERWRITEPROTOCOL: https
+      TRUSTED_PROXIES: 172.16.0.0/12
+    volumes:
+      # Lives on the ZFS mirrored dataset — this is the redundancy boundary.
+      - ${TANDEM_ZFS_MOUNTPOINT_NEXTCLOUD}:/var/www/html
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/status.php"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  caddy:
+    build: ./docker/caddy
+    restart: unless-stopped
+    depends_on:
+      - nextcloud
+    environment:
+      TANDEM_PUBLIC_DOMAIN: ${TANDEM_PUBLIC_DOMAIN}
+      TANDEM_ACME_EMAIL: ${TANDEM_ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - ${TANDEM_DATA_ROOT}/caddy/logs:/var/log/caddy
+    networks: [internal]
+
+  fail2ban:
+    image: crazymax/fail2ban:latest
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      TZ: ${TZ:-UTC}
+      F2B_LOG_TARGET: STDOUT
+      F2B_DB_PURGE_AGE: 30d
+    volumes:
+      - ${TANDEM_DATA_ROOT}/fail2ban:/data
+      - ${TANDEM_DATA_ROOT}/caddy/logs:/var/log/caddy:ro
+      - ${TANDEM_ZFS_MOUNTPOINT_NEXTCLOUD}:/mnt/nextcloud-appdata:ro
+      - ./docker/fail2ban/jail.d:/etc/fail2ban/jail.d:ro
+      - ./docker/fail2ban/filter.d:/etc/fail2ban/filter.d:ro
+      - /var/log/auth.log:/var/log/auth.log:ro

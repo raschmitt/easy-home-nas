@@ -1,0 +1,14 @@
+title = "Tandem NAS gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholders that look like secrets but aren't"
+regexes = [
+  '''REPLACE_WITH_[A-Z_]+''',
+  '''REPLACE_WITH_YOUR_DISK_\d''',
+]
+paths = [
+  '''\.env\.example$''',
+]

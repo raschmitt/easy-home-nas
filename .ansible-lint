@@ -1,0 +1,13 @@
+---
+profile: production
+exclude_paths:
+  - .github/
+  - docker/
+skip_list:
+  # Local-only variant names are intentional (tandem_* prefix is the project
+  # convention, not the collection default var naming ansible-lint expects).
+  - var-naming[no-role-prefix]
+  # Role directory names use hyphens (zfs-mirror, udev-backup-trigger) to
+  # match this project's documented repository layout (see README.md /
+  # ARCHITECTURE.md) — intentional, not a naming mistake.
+  - role-name

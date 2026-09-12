@@ -1,0 +1,52 @@
+---
+# A stock Ubuntu Desktop suspends after inactivity and locks the screen —
+# either would take the NAS offline or block automated access. Two
+# independent layers are used deliberately: masking the systemd sleep
+# targets is the hard guarantee that survives regardless of desktop
+# environment, while the gsettings changes keep the GNOME UI honest about
+# it (so it doesn't show "will suspend in 10 min" while masked).
+
+- name: Mask systemd sleep/suspend/hibernate targets (hard guarantee)
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    masked: true
+  loop:
+    - sleep.target
+    - suspend.target
+    - hibernate.target
+    - hybrid-sleep.target
+
+- name: Never let logind act on lid switch / idle / power key
+  ansible.builtin.copy:
+    dest: /etc/systemd/logind.conf.d/99-tandem-nas.conf
+    mode: "0644"
+    content: |
+      # Managed by Tandem NAS (ansible/roles/desktop-power)
+      [Login]
+      IdleAction=ignore
+      HandleSuspendKey=ignore
+      HandleLidSwitch=ignore
+      HandleLidSwitchDocked=ignore
+  notify: Restart systemd-logind
+
+- name: Determine desktop user's UID (needed to reach their DBus session)
+  ansible.builtin.command: "id -u {{ tandem_desktop_user }}"
+  register: tandem_desktop_uid
+  changed_when: false
+  failed_when: false
+
+- name: Apply GNOME power/lock settings for the desktop user
+  when: tandem_desktop_uid.rc == 0
+  become: true
+  become_user: "{{ tandem_desktop_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ tandem_desktop_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ tandem_desktop_uid.stdout }}/bus"
+  ansible.builtin.command: "gsettings set {{ item.schema }} {{ item.key }} {{ item.value }}"
+  loop:
+    - { schema: "org.gnome.settings-daemon.plugins.power", key: "sleep-inactive-ac-type", value: "'nothing'" }
+    - { schema: "org.gnome.settings-daemon.plugins.power", key: "sleep-inactive-battery-type", value: "'nothing'" }
+    - { schema: "org.gnome.desktop.screensaver", key: "lock-enabled", value: "false" }
+    - { schema: "org.gnome.desktop.session", key: "idle-delay", value: "0" }
+  changed_when: true
+  failed_when: false

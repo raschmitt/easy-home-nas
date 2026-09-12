@@ -1,0 +1,19 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Tandem NAS — restic backup to external disk
+After=local-fs.target
+# Don't overlap runs if the disk bounces on/off quickly.
+StartLimitIntervalSec=600
+StartLimitBurst=1
+
+[Service]
+Type=oneshot
+EnvironmentFile={{ tandem_install_root }}/backup.env
+ExecStartPre=/usr/bin/mkdir -p {{ tandem_backup_mountpoint }}
+ExecStartPre=/usr/bin/mount LABEL={{ tandem_backup_disk_label }} {{ tandem_backup_mountpoint }}
+ExecStart={{ tandem_install_root }}/scripts/backup.sh
+ExecStopPost=-/usr/bin/umount {{ tandem_backup_mountpoint }}
+TimeoutStartSec=0
+# Visible via: journalctl -u tandem-backup.service
+StandardOutput=journal
+StandardError=journal

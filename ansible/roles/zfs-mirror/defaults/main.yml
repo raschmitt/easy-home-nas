@@ -1,0 +1,8 @@
+---
+tandem_zfs_pool_name: tandem
+tandem_zfs_disks: []
+tandem_zfs_dataset_nextcloud: "{{ tandem_zfs_pool_name }}/nextcloud"
+tandem_zfs_mountpoint_nextcloud: /srv/tandem-nas/nextcloud-data
+tandem_zfs_reservation: ""
+tandem_zfs_confirm_wipe: "false"
+tandem_zfs_ashift: 12

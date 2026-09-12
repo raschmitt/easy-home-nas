@@ -1,0 +1,49 @@
+{
+	email {$TANDEM_ACME_EMAIL}
+}
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "no-referrer"
+		# Nextcloud sets its own CSP; don't fight it here.
+		-Server
+	}
+}
+
+{$TANDEM_PUBLIC_DOMAIN} {
+	import security_headers
+
+	# Rate-limit auth endpoints hardest: brute-force protection in depth,
+	# on top of Nextcloud's own brute-force throttling and fail2ban.
+	rate_limit {
+		zone login_zone {
+			match {
+				path /login*
+				path /ocs/v2.php/core/getapppassword*
+				path /remote.php/dav*
+			}
+			key {remote_host}
+			events 20
+			window 1m
+		}
+		zone general_zone {
+			key {remote_host}
+			events 300
+			window 1m
+		}
+	}
+
+	# Nextcloud needs these redirects/headers for CalDAV/CardDAV discovery.
+	redir /.well-known/carddav /remote.php/dav 301
+	redir /.well-known/caldav /remote.php/dav 301
+
+	reverse_proxy nextcloud:80
+
+	log {
+		output file /var/log/caddy/access.log
+		format json
+	}
+}

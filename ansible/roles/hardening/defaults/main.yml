@@ -1,0 +1,8 @@
+---
+# SSH config edits are opt-in: this machine already has an active SSH
+# session in use, and disabling password auth without a verified key on
+# file would lock the owner out. Firewall rules, unattended upgrades, and
+# fail2ban stay on by default because none of them can lock you out.
+tandem_harden_ssh: "false"
+tandem_ssh_port: 22
+tandem_ufw_extra_allow_tcp: []

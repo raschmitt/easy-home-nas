@@ -1,0 +1,20 @@
+# Secrets and local configuration — never commit real values
+.env
+ansible/inventory.ini
+*.retry
+
+# Nextcloud / app runtime data (bind-mounted from the host, not repo content)
+data/
+nextcloud-data/
+
+# restic cache
+.restic-cache/
+
+# OS / editor cruft
+.DS_Store
+*.swp
+*~
+
+# Ansible
+*.retry
+.vault-pass

@@ -1,0 +1,5 @@
+{{ ansible_managed | comment }}
+# Fires only for the specific backup disk (matched by filesystem LABEL, not
+# "any USB block device") so plugging in an unrelated flash drive never
+# triggers a backup run. The label is written once by scripts/prepare-backup-disk.sh.
+SUBSYSTEM=="block", ENV{ID_FS_LABEL}=="{{ tandem_backup_disk_label }}", ACTION=="add", TAG+="systemd", ENV{SYSTEMD_WANTS}+="tandem-backup.service"

@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  compose-lint:
+    name: docker compose config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate docker-compose.yml
+        run: |
+          cp .env.example .env
+          docker compose config -q
+
+  ansible-lint:
+    name: ansible-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ansible-lint
+        run: pip install ansible-lint ansible-core
+      - name: Install required collections
+        run: ansible-galaxy collection install -r ansible/requirements.yml
+      - name: Run ansible-lint
+        run: ansible-lint ansible/
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run shellcheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        env:
+          # SC1091: scripts source lib/common.sh via a runtime-computed
+          # $SCRIPT_DIR path; shellcheck can't statically follow it, and the
+          # `# shellcheck source=` hints already document the real path for
+          # humans/editors.
+          SHELLCHECK_OPTS: -e SC1091
+        with:
+          scandir: "./scripts"
+
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,115 @@
+---
+- name: Install ZFS and auto-snapshot tooling
+  ansible.builtin.apt:
+    name:
+      - zfsutils-linux
+      - zfs-auto-snapshot
+    state: present
+    update_cache: true
+
+- name: Ensure the zfs kernel module loads at boot
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/zfs.conf
+    content: "zfs\n"
+    mode: "0644"
+
+- name: Load the zfs kernel module now
+  community.general.modprobe:
+    name: zfs
+    state: present
+
+- name: Check whether the pool already exists
+  ansible.builtin.command: "zpool list -H -o name {{ tandem_zfs_pool_name }}"
+  register: tandem_zfs_pool_check
+  changed_when: false
+  failed_when: false
+
+- name: Safety check — refuse to touch disks that already carry a filesystem
+  when: tandem_zfs_pool_check.rc != 0
+  block:
+    - name: Probe each target disk for existing signatures
+      ansible.builtin.command: "blkid {{ item }}"
+      register: tandem_zfs_blkid
+      changed_when: false
+      failed_when: false
+      loop: "{{ tandem_zfs_disks }}"
+
+    - name: Fail if a disk already has a filesystem/partition signature
+      ansible.builtin.assert:
+        that:
+          - item.rc != 0
+        fail_msg: >-
+          {{ item.item }} already has a filesystem/partition signature
+          ({{ item.stdout }}). Creating the ZFS pool would destroy that data.
+          If you are certain this disk is meant to be wiped, set
+          TANDEM_ZFS_CONFIRM_WIPE=true in .env and re-run.
+        quiet: true
+      loop: "{{ tandem_zfs_blkid.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: not (tandem_zfs_confirm_wipe | bool)
+
+- name: Create the mirrored pool
+  ansible.builtin.command: >
+    zpool create -o ashift={{ tandem_zfs_ashift }}
+    {{ tandem_zfs_pool_name }} mirror {{ tandem_zfs_disks | join(' ') }}
+  when: tandem_zfs_pool_check.rc != 0
+  changed_when: true
+
+- name: Enable transparent compression on the pool
+  community.general.zfs:
+    name: "{{ tandem_zfs_pool_name }}"
+    state: present
+    extra_zfs_properties:
+      compression: lz4
+
+- name: Ensure the Nextcloud data mount path exists
+  ansible.builtin.file:
+    path: "{{ tandem_zfs_mountpoint_nextcloud }}"
+    state: directory
+    mode: "0750"
+
+- name: Create/configure the Nextcloud dataset
+  community.general.zfs:
+    name: "{{ tandem_zfs_dataset_nextcloud }}"
+    state: present
+    extra_zfs_properties:
+      mountpoint: "{{ tandem_zfs_mountpoint_nextcloud }}"
+      atime: "off"
+      xattr: sa
+
+- name: Apply a space reservation for the Nextcloud dataset (optional headroom)
+  community.general.zfs:
+    name: "{{ tandem_zfs_dataset_nextcloud }}"
+    state: present
+    extra_zfs_properties:
+      reservation: "{{ tandem_zfs_reservation }}"
+  when: tandem_zfs_reservation | length > 0
+
+- name: Enable monthly scrub timer for self-healing checksum verification
+  ansible.builtin.systemd:
+    name: "zfs-scrub-monthly@{{ tandem_zfs_pool_name }}.timer"
+    enabled: true
+    state: started
+
+- name: Enable daily snapshot timer
+  ansible.builtin.systemd:
+    name: zfs-auto-snapshot-daily.timer
+    enabled: true
+    state: started
+
+- name: Enable weekly snapshot timer
+  ansible.builtin.systemd:
+    name: zfs-auto-snapshot-weekly.timer
+    enabled: true
+    state: started
+
+- name: Disable overly chatty frequent/hourly snapshots (opinionated default)
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop:
+    - zfs-auto-snapshot-frequent.timer
+    - zfs-auto-snapshot-hourly.timer
+  failed_when: false
