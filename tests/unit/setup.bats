@@ -13,6 +13,8 @@ setup() {
 
 @test "gen_password produces a 24-character string" {
 	run gen_password
+	echo "DEBUG status=$status len=${#output} output=[$output]" >&3
+	echo "$output" | od -c | head -5 >&3
 	[ "$status" -eq 0 ]
 	[ "${#output}" -eq 24 ]
 }
