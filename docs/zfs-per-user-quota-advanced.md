@@ -13,10 +13,12 @@ default `zfs-mirror` role; treat this as a recipe to adapt.
 
 ## The pattern
 
+`{{username}}` below is a placeholder — replace it with the actual login
+(e.g. `alice`).
+
 ```bash
 # One dataset per user, each with its own hard quota
-sudo zfs create -o quota=50G tandem/users/alice
-sudo zfs create -o quota=100G tandem/users/bob
+sudo zfs create -o quota=50G tandem/users/{{username}}
 ```
 
 ## Wiring it into Nextcloud
@@ -26,7 +28,7 @@ use the **External Storage** app to map each dataset in as that user's
 storage, or bind-mount each dataset into the container at a per-user path
 and use `occ files_external`. Either way, every new user means:
 
-1. `zfs create -o quota=<size> tandem/users/<name>`
+1. `zfs create -o quota=<size> tandem/users/{{username}}`
 2. Add the corresponding bind mount (docker-compose.yml) or
    `occ files_external:create` entry.
 3. Restart the `nextcloud` container if you changed `docker-compose.yml`.

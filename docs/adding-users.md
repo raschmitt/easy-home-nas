@@ -3,10 +3,15 @@
 Users are provisioned via script, not by clicking through the Nextcloud admin
 UI, so it stays repeatable and auditable.
 
+Every command below is a template: `{{username}}` (and, where a second
+account is involved, `{{other_username}}`) is a placeholder, not a literal
+value — replace it with the actual login you're creating or managing (e.g.
+`alice`, `jsmith`, `rogerio`).
+
 ## Create a user
 
 ```bash
-scripts/provision-user.sh alice --quota 50G
+scripts/provision-user.sh {{username}} --quota 50G
 ```
 
 - `--quota` accepts Nextcloud's quota syntax (`10G`, `500M`, `none` for
@@ -18,13 +23,13 @@ scripts/provision-user.sh alice --quota 50G
   change it on first login.
 
 ```bash
-scripts/provision-user.sh bob --quota 100G --password 'a-password-you-chose'
+scripts/provision-user.sh {{username}} --quota 100G --password 'a-password-you-chose'
 ```
 
 ## Change an existing user's quota
 
 ```bash
-docker compose exec -u www-data nextcloud php occ user:setting alice files quota 80G
+docker compose exec -u www-data nextcloud php occ user:setting {{username}} files quota 80G
 ```
 
 ## List users and their current quota/usage
@@ -43,14 +48,15 @@ docker compose exec -u www-data nextcloud php occ twofactorauth:enforce
 ## Remove a user
 
 ```bash
-docker compose exec -u www-data nextcloud php occ user:delete alice
+docker compose exec -u www-data nextcloud php occ user:delete {{username}}
 ```
 
 This deletes the user's Nextcloud account and files. If you want to keep
-their files, transfer ownership first:
+their files, transfer ownership first (`{{username}}` is the account being
+removed, `{{other_username}}` is who receives their files):
 
 ```bash
-docker compose exec -u www-data nextcloud php occ files:transfer-ownership alice bob
+docker compose exec -u www-data nextcloud php occ files:transfer-ownership {{username}} {{other_username}}
 ```
 
 ## Default sample files (Documents, Photos, Templates)

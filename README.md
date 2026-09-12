@@ -134,10 +134,11 @@ turn on 2FA enforcement (see [`docs/remote-access.md`](docs/remote-access.md)) b
 ### 3. Add users
 
 ```bash
-scripts/provision-user.sh alice --quota 50G
+scripts/provision-user.sh {{username}} --quota 50G
 ```
 
-See [`docs/adding-users.md`](docs/adding-users.md).
+`{{username}}` is a placeholder — replace it with the login you want to
+create (e.g. `alice`). See [`docs/adding-users.md`](docs/adding-users.md).
 
 ### 4. Prepare the backup disk (once)
 
