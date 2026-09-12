@@ -212,21 +212,12 @@ easy-home-nas/
 └── docs/                    # Disaster recovery, adding users, remote/mobile access
 ```
 
-## Status / known trade-offs
+## Known issues
 
 Anything accepted as a deliberate trade-off rather than fixed outright is
 tracked in [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md) with the reasoning — check
 there before assuming something was simply missed.
 
-## Contributing
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md). Please read
-[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) too.
-
 ## Support
 
 If you find this project useful, consider [buying me a coffee](https://www.buymeacoffee.com/raschmitt) ☕
-
-## License
-
-[MIT](LICENSE).
