@@ -13,8 +13,6 @@ setup() {
 
 @test "gen_password produces a 24-character string" {
 	run gen_password
-	echo "DEBUG status=$status len=${#output} output=[$output]" >&3
-	echo "$output" | od -c | head -5 >&3
 	[ "$status" -eq 0 ]
 	[ "${#output}" -eq 24 ]
 }
@@ -38,6 +36,19 @@ setup() {
 	# was generated. gen_password must not use that pattern.
 	run bash -c "set -euo pipefail; source '$REPO_ROOT/scripts/setup.sh' >/dev/null 2>&1 || true; gen_password"
 	[ "$status" -eq 0 ]
+}
+
+@test "gen_password doesn't leak tr's broken-pipe message when SIGPIPE is inherited as ignored (regression: GitHub Actions runner)" {
+	# GitHub's hosted runners were observed to spawn job steps with SIGPIPE
+	# already set to ignore, so tr gets EPIPE back from write() instead of
+	# being killed, and prints "tr: write error: Broken pipe" to stderr —
+	# which then corrupted the password via bats' `run` (merges
+	# stdout+stderr). `trap '' PIPE` reproduces that inherited disposition
+	# here so this regresses loudly instead of only on that one runner.
+	run bash -c "trap '' PIPE; source '$REPO_ROOT/scripts/lib/common.sh'; gen_password"
+	[ "$status" -eq 0 ]
+	[ "${#output}" -eq 24 ]
+	[[ "$output" =~ ^[A-Za-z0-9]+$ ]]
 }
 
 # --- set_env_var / get_env_var -----------------------------------------

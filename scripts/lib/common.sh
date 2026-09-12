@@ -24,17 +24,23 @@ confirm() {
 }
 
 gen_password() {
-	# Not a plain `tr | head -c`: under `set -o pipefail`, head closing the
-	# pipe early sends tr a SIGPIPE that turns into a nonzero pipeline
-	# status, which would abort the whole script under `set -e`. The `||
-	# true` absorbs that. The loop guards the other failure mode: on some
-	# environments a single read from /dev/urandom through the pipeline can
-	# come up short of what was asked for (observed intermittently in CI,
-	# never locally) — keep pulling more until the password is actually the
-	# requested length instead of silently returning a shorter one.
+	# head closing the pipe early after 24 bytes sends tr a SIGPIPE. Two
+	# separate things can go wrong from that, both handled here:
+	#   - Under `set -o pipefail`, tr's signal-driven exit turns into a
+	#     nonzero pipeline status that would abort the whole script under
+	#     `set -e` — the `|| true` absorbs that.
+	#   - If SIGPIPE is inherited as ignored (observed on GitHub Actions'
+	#     hosted runners, never locally) tr instead gets EPIPE back from
+	#     write() and prints "tr: write error: Broken pipe" to stderr. That
+	#     text would otherwise leak into a caller's captured output (e.g.
+	#     bats' `run`, which merges stdout+stderr) and corrupt the
+	#     password — `2>/dev/null` on tr specifically discards it.
+	# The loop is defense in depth: keep pulling more bytes until the
+	# password actually reaches the requested length instead of trusting a
+	# single read to always deliver exactly that much.
 	local pw=""
 	while [ "${#pw}" -lt 24 ]; do
-		pw+="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$((24 - ${#pw}))" || true)"
+		pw+="$(tr -dc 'A-Za-z0-9' 2>/dev/null </dev/urandom | head -c "$((24 - ${#pw}))" || true)"
 	done
 	printf '%s' "$pw"
 }
